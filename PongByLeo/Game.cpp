@@ -1,14 +1,18 @@
 #include "Game.h"
 
 const int THICKNESS = 15;
-const float PADDLE_H = 100.0f;
+const float PADDLE_HEIGHT = 150.0f;
+const float SCREEN_WIDTH = 1024.0f;
+const float SCREEN_HEIGHT = 768.0f;
 
 Game::Game() : 
 	mIsRunning(true), 
 	mRenderer(nullptr), 
 	mWindow(nullptr),
-	mPaddlePosition(Vector2{ 10.0f, 768.0f / 2.0f }),
-	mBallPosition(Vector2{ 1024.0f / 2.0f, 768.0f / 2.0f }),
+	mPaddlePosition(Vector2{ 10.0f, SCREEN_HEIGHT / 2.0f }),
+	mBallPosition(Vector2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f }),
+	// mBallVelocity(Vector2{ -200.0f, 235.0f }),
+	mBallVelocity(Vector2{ -20.0f, -23.5f }),
 	mPaddleDirection(0),
 	mTicksCount(0)
 {
@@ -106,12 +110,40 @@ void Game::UpdateGame() {
 	if (this->mPaddleDirection != 0) {
 		this->mPaddlePosition.y += this->mPaddleDirection * 300.0f * deltaTime;
 		// Keeping the paddle on screen
-		if (this->mPaddlePosition.y < ((PADDLE_H / 2.0f) + THICKNESS)) {
-			this->mPaddlePosition.y = (PADDLE_H / 2.0f) + THICKNESS;
+		if (this->mPaddlePosition.y < ((PADDLE_HEIGHT / 2.0f) + THICKNESS)) {
+			this->mPaddlePosition.y = (PADDLE_HEIGHT / 2.0f) + THICKNESS;
 		}
-		else if (this->mPaddlePosition.y > (768.0f - (PADDLE_H / 2.0f) - THICKNESS)) {
-			this->mPaddlePosition.y = 768.0f - (PADDLE_H / 2.0f) - THICKNESS;
+		else if (this->mPaddlePosition.y > (SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS)) {
+			this->mPaddlePosition.y = SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS;
 		}
+	}
+
+	this->mBallPosition.x += this->mBallVelocity.x * deltaTime;
+	this->mBallPosition.y += this->mBallVelocity.y * deltaTime;
+
+	// Ball touches the top
+	if (this->mBallPosition.y <= THICKNESS && this->mBallVelocity.y < 0.0f) {
+		this->mBallVelocity.y *= -1;
+	}
+
+	// Ball touches the bottom
+	if (this->mBallPosition.y >= SCREEN_HEIGHT - THICKNESS) {
+		this->mBallVelocity.y *= -1;
+	}
+
+	float diff = this->mPaddlePosition.y - this->mBallPosition.y;
+	diff = (diff > 0.0f) ? diff : -diff;
+
+	if (
+		// Difference is larger than half of paddle's height, i.e., Ball is touching the paddle
+		diff <= PADDLE_HEIGHT / 2.0f &&
+		// Ball is at the same x-coordinate as Paddle's 
+		this->mBallPosition.x <= 25.0f && this->mBallPosition.x >= 20.0f &&
+		// The ball is moving to the left
+		this->mBallVelocity.x < 0.0f
+		) {
+
+		mBallVelocity.x *= -1.0f;
 	}
 }
 
@@ -154,14 +186,13 @@ void Game::GenerateOutput() {
 	};
 
 	SDL_RenderFillRect(this->mRenderer, &ball);
-	int paddleSize = THICKNESS * 10;
 
 	// Draw paddle
 	SDL_Rect paddle{
 		static_cast<int>(this->mPaddlePosition.x - THICKNESS / 2),
-		static_cast<int>(this->mPaddlePosition.y - paddleSize / 2),
+		static_cast<int>(this->mPaddlePosition.y - PADDLE_HEIGHT / 2),
 		THICKNESS,
-		paddleSize
+		PADDLE_HEIGHT
 	};
 
 	SDL_RenderFillRect(this->mRenderer, &paddle);
