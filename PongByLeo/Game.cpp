@@ -9,11 +9,12 @@ Game::Game() :
 	mIsRunning(true), 
 	mRenderer(nullptr), 
 	mWindow(nullptr),
-	mPaddlePosition(Vector2{ 10.0f, SCREEN_HEIGHT / 2.0f }),
+	mPaddle1Position(Vector2{ 10.0f, SCREEN_HEIGHT / 2.0f }),
+	mPaddle2Position(Vector2{ SCREEN_WIDTH - 10.0f, SCREEN_HEIGHT / 2.0f }),
 	mBallPosition(Vector2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f }),
-	// mBallVelocity(Vector2{ -200.0f, 235.0f }),
-	mBallVelocity(Vector2{ -20.0f, -23.5f }),
-	mPaddleDirection(0),
+	mBallVelocity(Vector2{ -20.0f * 3, -23.5f * 3 }),
+	mPaddle1Direction(0),
+	mPaddle2Direction(0),
 	mTicksCount(0)
 {
 
@@ -91,12 +92,22 @@ void Game::ProcessInput() {
 		this->mIsRunning = false;
 	}
 
-	mPaddleDirection = 0;
+	// Player 1
+	mPaddle1Direction = 0;
 	if (state[SDL_SCANCODE_W]) {
-		mPaddleDirection -= 1;
+		mPaddle1Direction -= 1;
 	}
 	if (state[SDL_SCANCODE_S]) {
-		mPaddleDirection += 1;
+		mPaddle1Direction += 1;
+	}
+
+	// Player 2
+	mPaddle2Direction = 0;
+	if (state[SDL_SCANCODE_UP]) {
+		mPaddle2Direction -= 1;
+	}
+	if (state[SDL_SCANCODE_DOWN]) {
+		mPaddle2Direction += 1;
 	}
 }
 
@@ -107,14 +118,27 @@ void Game::UpdateGame() {
 		deltaTime = 0.05f;
 	}
 
-	if (this->mPaddleDirection != 0) {
-		this->mPaddlePosition.y += this->mPaddleDirection * 300.0f * deltaTime;
+	// Moving left paddle
+	if (this->mPaddle1Direction != 0) {
+		this->mPaddle1Position.y += this->mPaddle1Direction * 300.0f * deltaTime;
 		// Keeping the paddle on screen
-		if (this->mPaddlePosition.y < ((PADDLE_HEIGHT / 2.0f) + THICKNESS)) {
-			this->mPaddlePosition.y = (PADDLE_HEIGHT / 2.0f) + THICKNESS;
+		if (this->mPaddle1Position.y < ((PADDLE_HEIGHT / 2.0f) + THICKNESS)) {
+			this->mPaddle1Position.y = (PADDLE_HEIGHT / 2.0f) + THICKNESS;
 		}
-		else if (this->mPaddlePosition.y > (SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS)) {
-			this->mPaddlePosition.y = SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS;
+		else if (this->mPaddle1Position.y > (SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS)) {
+			this->mPaddle1Position.y = SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS;
+		}
+	}
+
+	// Moving right paddle
+	if (this->mPaddle2Direction != 0) {
+		this->mPaddle2Position.y += this->mPaddle2Direction * 300.0f * deltaTime;
+		// Keeping the paddle on screen
+		if (this->mPaddle2Position.y < ((PADDLE_HEIGHT / 2.0f) + THICKNESS)) {
+			this->mPaddle2Position.y = (PADDLE_HEIGHT / 2.0f) + THICKNESS;
+		}
+		else if (this->mPaddle2Position.y > (SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS)) {
+			this->mPaddle2Position.y = SCREEN_HEIGHT - (PADDLE_HEIGHT / 2.0f) - THICKNESS;
 		}
 	}
 
@@ -131,9 +155,10 @@ void Game::UpdateGame() {
 		this->mBallVelocity.y *= -1;
 	}
 
-	float diff = this->mPaddlePosition.y - this->mBallPosition.y;
+	float diff = this->mPaddle1Position.y - this->mBallPosition.y;
 	diff = (diff > 0.0f) ? diff : -diff;
 
+	// Ball touches the left paddle
 	if (
 		// Difference is larger than half of paddle's height, i.e., Ball is touching the paddle
 		diff <= PADDLE_HEIGHT / 2.0f &&
@@ -141,6 +166,22 @@ void Game::UpdateGame() {
 		this->mBallPosition.x <= 25.0f && this->mBallPosition.x >= 20.0f &&
 		// The ball is moving to the left
 		this->mBallVelocity.x < 0.0f
+		) {
+
+		mBallVelocity.x *= -1.0f;
+	}
+
+	diff = this->mPaddle2Position.y - this->mBallPosition.y;
+	diff = (diff > 0.0f) ? diff : -diff;
+
+	// Ball touches the right paddle
+	if (
+		// Difference is larger than half of paddle's height, i.e., Ball is touching the paddle
+		diff <= PADDLE_HEIGHT / 2.0f &&
+		// Ball is at the same x-coordinate as Paddle's 
+		this->mBallPosition.x >= (SCREEN_WIDTH - 25.0f) && this->mBallPosition.x <= (SCREEN_WIDTH - 20.0f) &&
+		// The ball is moving to the right
+		this->mBallVelocity.x > 0.0f
 		) {
 
 		mBallVelocity.x *= -1.0f;
@@ -187,15 +228,25 @@ void Game::GenerateOutput() {
 
 	SDL_RenderFillRect(this->mRenderer, &ball);
 
-	// Draw paddle
-	SDL_Rect paddle{
-		static_cast<int>(this->mPaddlePosition.x - THICKNESS / 2),
-		static_cast<int>(this->mPaddlePosition.y - PADDLE_HEIGHT / 2),
+	// Draw left paddle
+	SDL_Rect leftPaddle{
+		static_cast<int>(this->mPaddle1Position.x - THICKNESS / 2),
+		static_cast<int>(this->mPaddle1Position.y - PADDLE_HEIGHT / 2),
 		THICKNESS,
 		PADDLE_HEIGHT
 	};
 
-	SDL_RenderFillRect(this->mRenderer, &paddle);
+	SDL_RenderFillRect(this->mRenderer, &leftPaddle);
+
+	// Draw right paddle
+	SDL_Rect rightPaddle{
+		static_cast<int>(this->mPaddle2Position.x - THICKNESS / 2),
+		static_cast<int>(this->mPaddle2Position.y - PADDLE_HEIGHT / 2),
+		THICKNESS,
+		PADDLE_HEIGHT
+	};
+
+	SDL_RenderFillRect(this->mRenderer, &rightPaddle);
 
 	// Swap front and back buffers
 	SDL_RenderPresent(this->mRenderer);

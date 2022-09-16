@@ -14,11 +14,13 @@ private:
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 	bool mIsRunning;
-	Vector2 mPaddlePosition;
+	Vector2 mPaddle1Position;
+	Vector2 mPaddle2Position;
 	Vector2 mBallPosition;
 	Vector2 mBallVelocity;
 	Uint32 mTicksCount;
-	int mPaddleDirection;
+	int mPaddle1Direction;
+	int mPaddle2Direction;
 
 	bool InitializeWindow();
 	bool InitializeRenderer();
